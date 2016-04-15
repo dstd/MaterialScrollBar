@@ -66,12 +66,19 @@ import java.util.ArrayList;
  */
 @SuppressWarnings("unchecked")
 abstract class MaterialScrollBar<T> extends RelativeLayout {
+    static final int DEFAULT_INDICATOR_SPACING = 10;
+    public static final int DEFAULT_SCROLLBAR_WIDTH = 20;
+    public static final int DEFAULT_BACKGROUND_WIDTH = 12;
+    public static final int DEFAULT_HANDLE_WIDTH = 12;
+    public static final int DEFAULT_HANDLE_HEIGHT = 72;
 
     private View background;
     Handle handle;
     int handleColour;
     int handleOffColour = Color.parseColor("#9c9c9c");
+    int indicatorColour = 0;
     protected boolean hidden = true;
+    protected boolean autohide = true;
     RecyclerView recyclerView;
     Indicator indicator;
     private int textColour = ContextCompat.getColor(getContext(), android.R.color.white);
@@ -115,7 +122,7 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
         setId(R.id.reservedNamedId); //Gives the view an ID so that it can be found in the parent.
         addView(setUpBackground(context)); //Adds the background
         addView(setUpHandle(context, lightOnTouch)); //Adds the handle
-        LayoutParams layoutParams = new LayoutParams(Utils.getDP(20, this), ViewGroup.LayoutParams.MATCH_PARENT);
+        LayoutParams layoutParams = new LayoutParams(Utils.getDP(DEFAULT_SCROLLBAR_WIDTH, this), ViewGroup.LayoutParams.MATCH_PARENT);
         layoutParams.addRule(ALIGN_RIGHT, recyclerView.getId());
         layoutParams.addRule(ALIGN_TOP, recyclerView.getId());
         layoutParams.addRule(ALIGN_BOTTOM, recyclerView.getId());
@@ -147,7 +154,7 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
     //Dual case. Sets up bar.
     View setUpBackground(Context context){
         background = new View(context);
-        LayoutParams lp = new RelativeLayout.LayoutParams(Utils.getDP(12, this), LayoutParams.MATCH_PARENT);
+        LayoutParams lp = new RelativeLayout.LayoutParams(Utils.getDP(DEFAULT_BACKGROUND_WIDTH, this), LayoutParams.MATCH_PARENT);
         lp.addRule(ALIGN_PARENT_RIGHT);
         background.setLayoutParams(lp);
         background.setBackgroundColor(ContextCompat.getColor(context, android.R.color.darker_gray));
@@ -158,8 +165,7 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
     //Dual case. Sets up handle.
     Handle setUpHandle(Context context, Boolean lightOnTouch){
         handle = new Handle(context, getMode(), programmatic);
-        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(Utils.getDP(12, this),
-                Utils.getDP(72, this));
+        RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(Utils.getDP(DEFAULT_HANDLE_WIDTH, this), Utils.getDP(DEFAULT_HANDLE_HEIGHT, this));
         lp.addRule(ALIGN_PARENT_RIGHT);
         handle.setLayoutParams(lp);
 
@@ -271,7 +277,7 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
     // Makes the bar render correctly for XML
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int desiredWidth = Utils.getDP(12, this);
+        int desiredWidth = Utils.getDP(DEFAULT_HANDLE_WIDTH, this);
         int desiredHeight = 100;
 
         int widthMode = MeasureSpec.getMode(widthMeasureSpec);
@@ -361,11 +367,11 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
     }
 
     private void setHandleColour(){
-        if(indicator != null){
-            ((GradientDrawable)indicator.getBackground()).setColor(handleColour);
-        }
         if(!lightOnTouch){
             handle.setBackgroundColor(handleColour);
+        }
+        if(indicator != null && indicatorColour == 0){
+            ((GradientDrawable)indicator.getBackground()).setColor(handleColour);
         }
     }
 
@@ -403,6 +409,42 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
             handle.setBackgroundColor(handleOffColour);
         }
         return (T)this;
+    }
+
+    /**
+     * Provides the ability to programmatically set the colour of the indicator.
+     * @param colour to set the handle.
+     */
+    public T setIndicatorColour(String colour){
+        indicatorColour = Color.parseColor(colour);
+        setIndicatorColour();
+        return (T)this;
+    }
+
+    /**
+     * Provides the ability to programmatically set the colour of the indicator.
+     * @param colour to set the handle.
+     */
+    public T setIndicatorColour(int colour){
+        indicatorColour = colour;
+        setIndicatorColour();
+        return (T)this;
+    }
+
+    /**
+     * Provides the ability to programmatically set the colour of the indicator.
+     * @param colourResId to set the handle.
+     */
+    public T setIndicatorColourRes(int colourResId){
+        indicatorColour = ContextCompat.getColor(getContext(), colourResId);
+        setIndicatorColour();
+        return (T)this;
+    }
+
+    private void setIndicatorColour(){
+        if(indicator != null){
+            ((GradientDrawable)indicator.getBackground()).setColor(indicatorColour);
+        }
     }
 
     /**
@@ -483,39 +525,33 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
      * @param addSpace Should space be put between the indicator and the bar or should they touch?
      */
     public T addIndicator(final Indicator indicator, final boolean addSpace) {
-        class attachListener implements Runnable {
+        return addIndicator(indicator, addSpace ? DEFAULT_INDICATOR_SPACING : 0);
+    }
 
-            MaterialScrollBar view;
-
-            attachListener(MaterialScrollBar v){
-                view = v;
-            }
-
-            @Override
-            public void run() {
-                while(!ViewCompat.isAttachedToWindow(view)) {
-
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-
+    /**
+     * Adds an indicator which accompanies this scroll bar.
+     *
+     * @param spacing The space should be put between the indicator and the bar or should they touch?
+     */
+    public T addIndicator(final Indicator indicator, final int spacing) {
+        if (ViewCompat.isAttachedToWindow(this)) {
+            this.indicator = indicator;
+            indicator.testAdapter(recyclerView.getAdapter());
+            indicator.linkToScrollBar(MaterialScrollBar.this, spacing);
+            indicator.setTextColour(textColour);
+        } else {
+            addOnLayoutChangeListener(new OnLayoutChangeListener() {
+                @Override
+                public void onLayoutChange(View v, int left, int top, int right, int bottom, int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                    MaterialScrollBar.this.removeOnLayoutChangeListener(this);
+                    MaterialScrollBar.this.indicator = indicator;
+                    indicator.testAdapter(recyclerView.getAdapter());
+                    indicator.linkToScrollBar(MaterialScrollBar.this, spacing);
+                    indicator.setTextColour(textColour);
                 }
-
-                indicator.testAdapter(recyclerView.getAdapter());
-                view.indicator = indicator;
-                view.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        indicator.linkToScrollBar(view, addSpace);
-                        indicator.setTextColour(textColour);
-                    }
-                });
-
-            }
+            });
         }
-        new Thread(new attachListener(this)).start();
+
         return (T)this;
     }
 
@@ -540,6 +576,84 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
     }
 
     /**
+     * Configure thickness of the scrollbar and of the handle
+     * @param barThickness thickness of the bar.
+     * @param handleThickness thickness for the handle
+     */
+    public T setBarThickness(int barThickness, int handleThickness){
+        barThickness = Utils.getDP(barThickness, this);
+        handleThickness = Utils.getDP(handleThickness, this);
+
+        LayoutParams layoutParams = (LayoutParams) handle.getLayoutParams();
+        layoutParams.width = handleThickness;
+        handle.setLayoutParams(layoutParams);
+        int handleRightMargin = layoutParams.rightMargin;
+
+        layoutParams = (LayoutParams) background.getLayoutParams();
+        layoutParams.width = barThickness;
+        layoutParams.rightMargin = handleRightMargin + (handleThickness - barThickness)/2;
+        background.setLayoutParams(layoutParams);
+
+        if(indicator != null){
+            indicator.setSizeCustom(handleThickness + handleRightMargin);
+        }
+        return (T)this;
+    }
+
+    /**
+     * Configure the padding for the scrollbar
+     * @param paddingHorizontal Padding from the margin
+     * @param paddingVertical Padding from top and bottom sides
+     */
+    public T setBarPadding(int paddingHorizontal, int paddingVertical){
+        paddingHorizontal = Utils.getDP(paddingHorizontal, this);
+        paddingVertical = Utils.getDP(paddingVertical, this);
+
+        LayoutParams layoutParams = (LayoutParams) handle.getLayoutParams();
+        layoutParams.rightMargin = paddingHorizontal;
+        handle.setLayoutParams(layoutParams);
+        int handleThickness = layoutParams.width;
+
+        layoutParams = (LayoutParams) background.getLayoutParams();
+        layoutParams.rightMargin = paddingHorizontal + (handleThickness - layoutParams.width)/2;
+        background.setLayoutParams(layoutParams);
+
+        layoutParams = (LayoutParams) this.getLayoutParams();
+        layoutParams.width = 2 * paddingHorizontal + handleThickness;
+        layoutParams.topMargin = paddingVertical;
+        layoutParams.bottomMargin = paddingVertical;
+        this.setLayoutParams(layoutParams);
+
+        if(indicator != null){
+            indicator.setSizeCustom(handleThickness + paddingHorizontal);
+        }
+        return (T)this;
+    }
+
+    /**
+     * Enable/disable auto-hiding of the scrollbar
+     * @param autohide is autohiding enabled
+     */
+    public T setScrollBarAutoHide(boolean autohide) {
+        this.autohide = autohide;
+        return (T)this;
+    }
+
+    /**
+     * Configure handle height
+     * @param handleHeight desired handle height
+     */
+    public T setHandleHeight(int handleHeight) {
+        handleHeight = Utils.getDP(handleHeight, this);
+
+        LayoutParams layoutParams = (LayoutParams) handle.getLayoutParams();
+        layoutParams.height = handleHeight;
+        handle.setLayoutParams(layoutParams);
+
+        return (T)this;
+    }
+
+    /**
      * Hide or unhide the scrollBar.
      */
     public void setScrollBarHidden(boolean hidden){
@@ -548,6 +662,14 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
     }
 
     //CHAPTER IV - MISC METHODS
+
+    /**
+     * Minimal required offset from the side of parent to avoid overlapping with scrollbar
+     */
+    int getMarginForIndicator() {
+        LayoutParams handleLayoutParams = (LayoutParams) handle.getLayoutParams();
+        return handle.getWidth() + handleLayoutParams.rightMargin;
+    }
 
     //Fetch accent colour on devices running Lollipop or newer.
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -566,7 +688,7 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
      * Animates the bar out of view
      */
     void fadeOut(){
-        if(!hidden){
+        if(!hidden && autohide){
             TranslateAnimation anim = new TranslateAnimation(Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_SELF, getHideRatio(), Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.0f);
             anim.setDuration(150);
             anim.setFillAfter(true);
@@ -612,10 +734,15 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
             }
         }
 
-        int top = handle.getHeight() / 2;
-        int bottom = recyclerView.getHeight() - Utils.getDP(72, recyclerView.getContext());
-        float boundedY = Math.max(top, Math.min(bottom, event.getY() - getHandleOffset()));
-        scrollUtils.scrollToPositionAtProgress((boundedY - top) / (bottom - top));
+        int halfHandle = handle.getHeight() / 2;
+        int minY = this.getTop() + halfHandle;
+        int maxY = this.getBottom() - handle.getHeight();
+        int height = maxY - minY;
+        if (height == 0)
+            return;
+
+        float normalizedY = Math.min(Math.max(0.0f, event.getY() - getHandleOffset() - minY) / height, 1.0f);
+        scrollUtils.scrollToPositionAtProgress(normalizedY);
         scrollUtils.scrollHandleAndIndicator();
         recyclerView.onScrolled(0, 0);
 

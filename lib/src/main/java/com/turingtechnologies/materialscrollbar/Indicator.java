@@ -31,7 +31,7 @@ abstract class Indicator extends RelativeLayout{
 
     protected TextView textView;
     protected Context context;
-    private boolean addSpace;
+    private int spacing;
     private MaterialScrollBar materialScrollBar;
 
     public Indicator(Context context) {
@@ -43,26 +43,28 @@ abstract class Indicator extends RelativeLayout{
 
     public void setSizeCustom(int size){
         RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams)getLayoutParams();
-        if(addSpace){
-            lp.setMargins(0, 0, size + Utils.getDP(10, this), 0);
+        if(spacing > 0){
+            lp.setMargins(0, 0, size + spacing, 0);
         } else {
             lp.setMargins(0, 0, size, 0);
         }
         setLayoutParams(lp);
     }
 
-    void linkToScrollBar(MaterialScrollBar msb, boolean addSpace){
-        this.addSpace = addSpace;
+    void linkToScrollBar(MaterialScrollBar msb, int spacing){
+        spacing = Utils.getDP(spacing, this);
+        this.spacing = spacing;
+
         if(Build.VERSION.SDK_INT >= 16){
             setBackground(ContextCompat.getDrawable(context, R.drawable.indicator));
         } else {
             setBackgroundDrawable(ContextCompat.getDrawable(context, R.drawable.indicator));
         }
         RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(Utils.getDP(getIndicatorWidth(), this), Utils.getDP(getIndicatorHeight(), this));
-        if(addSpace){
-            lp.setMargins(0, 0, Utils.getDP(15, this) + msb.handle.getWidth(), 0);
+        if(spacing > 0){
+            lp.setMargins(0, 0, spacing + msb.getMarginForIndicator(), 0);
         } else {
-            lp.setMargins(0, 0, Utils.getDP(2, this) + msb.handle.getWidth(), 0);
+            lp.setMargins(0, 0, Utils.getDP(2, this) + msb.getMarginForIndicator(), 0);
         }
 
         textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, getTextSize());
@@ -71,7 +73,8 @@ abstract class Indicator extends RelativeLayout{
 
         addView(textView, tvlp);
 
-        ((GradientDrawable)getBackground()).setColor(msb.handleColour);
+        int indicatorColour = msb.indicatorColour == 0 ? msb.handleColour : msb.indicatorColour;
+        ((GradientDrawable)getBackground()).setColor(indicatorColour);
 
         lp.addRule(ALIGN_RIGHT, msb.getId());
         ((ViewGroup)msb.getParent()).addView(this, lp);
@@ -85,7 +88,7 @@ abstract class Indicator extends RelativeLayout{
      */
     void setScroll(float y){
         if(getVisibility() == VISIBLE){
-            y -= 75 - materialScrollBar.getIndicatorOffset() + Utils.getDP(getIndicatorHeight() / 2, this);
+            y -= materialScrollBar.getIndicatorOffset() + Utils.getDP(getIndicatorHeight(), this);
 
             if(y < 5){
                 y = 5;
@@ -114,5 +117,4 @@ abstract class Indicator extends RelativeLayout{
     abstract void testAdapter(RecyclerView.Adapter adapter);
 
     abstract int getTextSize();
-
 }
