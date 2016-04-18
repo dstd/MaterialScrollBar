@@ -2,6 +2,7 @@ package com.turingtechnologies.materialscrollbardemo;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -9,6 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 import com.turingtechnologies.materialscrollbar.DateAndTimeIndicator;
+import com.turingtechnologies.materialscrollbar.MaterialScrollBarListener;
 import com.turingtechnologies.materialscrollbar.TouchScrollBar;
 
 public class DateActivity extends AppCompatActivity {
@@ -29,7 +31,18 @@ public class DateActivity extends AppCompatActivity {
                 .setBarPadding(12, 12)
                 .setBarThickness(2, 4)
                 .setAutoHide(false)
-                .setHandleHeight(32);
+                .setHandleHeight(32)
+                .setEventsListener(new MaterialScrollBarListener() {
+                    @Override
+                    public void onMaterialScrollBarIndicatorShows() {
+                        ((FloatingActionButton)findViewById(R.id.fab)).hide();
+                    }
+
+                    @Override
+                    public void onMaterialScrollBarIndicatorHides() {
+                        ((FloatingActionButton)findViewById(R.id.fab)).show();
+                    }
+                });
     }
 
     @Override

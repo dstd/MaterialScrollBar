@@ -90,6 +90,7 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
     boolean programmatic;
     ScrollingUtilities scrollUtils = new ScrollingUtilities(this);
     SwipeRefreshLayout swipeRefreshLayout;
+    MaterialScrollBarListener materialScrollBarListener;
 
     //CHAPTER I - INITIAL SETUP
 
@@ -556,6 +557,14 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
     }
 
     /**
+     * Set events listener
+     */
+    public T setEventsListener(MaterialScrollBarListener listener) {
+        materialScrollBarListener = listener;
+        return (T)this;
+    }
+
+    /**
      * Allows the developer to set a custom bar thickness.
      * @param thickness The desired bar thickness.
      */
@@ -732,6 +741,9 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
                     }
                 });
             }
+
+            if (materialScrollBarListener != null)
+                materialScrollBarListener.onMaterialScrollBarIndicatorShows();
         }
 
         int halfHandle = handle.getHeight() / 2;
@@ -768,6 +780,9 @@ abstract class MaterialScrollBar<T> extends RelativeLayout {
             } else {
                 indicator.setVisibility(INVISIBLE);
             }
+
+            if (materialScrollBarListener != null)
+                materialScrollBarListener.onMaterialScrollBarIndicatorHides();
         }
 
         if (lightOnTouch) {
