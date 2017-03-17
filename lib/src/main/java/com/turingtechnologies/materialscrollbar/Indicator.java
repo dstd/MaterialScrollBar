@@ -41,7 +41,8 @@ public abstract class Indicator<T, U extends Indicator> extends RelativeLayout{
 
     protected TextView textView;
     protected Context context;
-    private boolean addSpace;
+    private int spacing;
+    private int indicatorColour;
     private MaterialScrollBar materialScrollBar;
     private boolean rtl;
     private int size;
@@ -53,11 +54,29 @@ public abstract class Indicator<T, U extends Indicator> extends RelativeLayout{
         setVisibility(INVISIBLE);
     }
 
-    void setSizeCustom(int size){
-        if(addSpace){
-           this.size =  size + Utils.getDP(10, this);
+    public Indicator setIndicatorColour(int colour) {
+        indicatorColour = colour;
+        final GradientDrawable background = (GradientDrawable) getBackground();
+        if (background != null)
+            background.setColor(indicatorColour);
+
+        return this;
+    }
+
+    public Indicator setIndicatorColourRes(int colourResId) {
+        indicatorColour = ContextCompat.getColor(getContext(), colourResId);
+        final GradientDrawable background = (GradientDrawable) getBackground();
+        if (background != null)
+            background.setColor(indicatorColour);
+
+        return this;
+    }
+
+    void setSizeCustom(int size) {
+        if (spacing > 0) {
+            this.size = size + spacing;
         } else {
-            this.size =  size;
+            this.size = size;
         }
         setLayoutParams(refreshMargins((LayoutParams) getLayoutParams()));
     }
@@ -66,15 +85,12 @@ public abstract class Indicator<T, U extends Indicator> extends RelativeLayout{
         this.rtl = rtl;
     }
 
-    void linkToScrollBar(MaterialScrollBar msb, boolean addSpace){
-        this.addSpace = addSpace;
+    void linkToScrollBar(MaterialScrollBar msb, int spacing){
+        spacing = Utils.getDP(spacing, this);
+        this.spacing = spacing;
         materialScrollBar = msb;
 
-        if(addSpace){
-            size = Utils.getDP(15, this)  + materialScrollBar.handleThumb.getWidth();
-        } else {
-            size = Utils.getDP(2, this)  + materialScrollBar.handleThumb.getWidth();
-        }
+        size = spacing + Utils.getDP(2, this) + materialScrollBar.handleThumb.getWidth();
 
         ViewCompat.setBackground(this, ContextCompat.getDrawable(context, rtl ? R.drawable.indicator_ltr : R.drawable.indicator));
 
@@ -87,7 +103,8 @@ public abstract class Indicator<T, U extends Indicator> extends RelativeLayout{
 
         addView(textView, tvlp);
 
-        ((GradientDrawable)getBackground()).setColor(msb.handleColour);
+        int indicatorColour = this.indicatorColour == 0 ? msb.handleColour : this.indicatorColour;
+        ((GradientDrawable)getBackground()).setColor(indicatorColour);
 
         if (rtl) {
             lp.addRule(ALIGN_LEFT, msb.getId());
@@ -177,6 +194,16 @@ public abstract class Indicator<T, U extends Indicator> extends RelativeLayout{
      */
     void setTextColour(@ColorInt int colour){
         textView.setTextColor(colour);
+    }
+
+    /**
+     * User by MaterialScrollBar to keep background colour of Indicator in sync with colour of handle, if indicatorColour is not specified
+     * @param colour The colour of the scrollbar handle
+     */
+    void updateWithHandleColour(@ColorInt int colour) {
+        if (indicatorColour != 0)
+            return;
+        ((GradientDrawable)getBackground()).setColor(colour);
     }
 
     /**
