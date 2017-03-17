@@ -19,8 +19,11 @@ package com.turingtechnologies.materialscrollbar;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.RelativeLayout;
 
 /*
  * Lots of complicated maths taken mostly from Google. Abandon all hope, ye who enter here.
@@ -100,6 +103,13 @@ class ScrollingUtilities {
         return materialScrollBar.getHeight() - materialScrollBar.handleThumb.getHeight();
     }
 
+    int getScrollBarVerticalMargins() {
+        final ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams)materialScrollBar.getLayoutParams();
+        if (layoutParams == null)
+            return 0;
+        return layoutParams.topMargin + layoutParams.bottomMargin;
+    }
+
     void scrollToPositionAtProgress(float touchFraction) {
         final LinearLayoutManager layoutManager = (LinearLayoutManager)materialScrollBar.recyclerView.getLayoutManager();
         if (customScroller == null) {
@@ -132,12 +142,15 @@ class ScrollingUtilities {
     }
 
     int getAvailableScrollHeight() {
-        int visibleHeight = materialScrollBar.getHeight();
+        final RecyclerView recyclerView = materialScrollBar.recyclerView;
+        if (recyclerView == null)
+            return 1;
+        int visibleHeight = recyclerView.getHeight();
         int scrollHeight;
         if(customScroller != null){
-            scrollHeight = materialScrollBar.getPaddingTop() + customScroller.getTotalDepth() + materialScrollBar.getPaddingBottom();
+            scrollHeight = customScroller.getTotalDepth();
         } else {
-            scrollHeight = materialScrollBar.getPaddingTop() + getRowCount() * scrollPosState.rowHeight + materialScrollBar.getPaddingBottom();
+            scrollHeight = getRowCount() * scrollPosState.rowHeight;
         }
         return scrollHeight - visibleHeight;
     }
