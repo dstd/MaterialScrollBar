@@ -81,9 +81,12 @@ class ScrollingUtilities {
     }
 
     private int getRowCount(){
-        int rowCount = materialScrollBar.recyclerView.getLayoutManager().getItemCount();
-        if (materialScrollBar.recyclerView.getLayoutManager() instanceof GridLayoutManager) {
-            int spanCount = ((GridLayoutManager) materialScrollBar.recyclerView.getLayoutManager()).getSpanCount();
+        final RecyclerView.LayoutManager layoutManager = materialScrollBar.recyclerView.getLayoutManager();
+        if (layoutManager == null)
+            return 0;
+        int rowCount = layoutManager.getItemCount();
+        if (layoutManager instanceof GridLayoutManager) {
+            int spanCount = ((GridLayoutManager) layoutManager).getSpanCount();
             rowCount = (int) Math.ceil((double) rowCount / spanCount);
         }
         return rowCount;
@@ -98,10 +101,11 @@ class ScrollingUtilities {
     }
 
     void scrollToPositionAtProgress(float touchFraction) {
-        if(customScroller == null) {
+        final LinearLayoutManager layoutManager = (LinearLayoutManager)materialScrollBar.recyclerView.getLayoutManager();
+        if (customScroller == null) {
             int spanCount = 1;
-            if (materialScrollBar.recyclerView.getLayoutManager() instanceof GridLayoutManager) {
-                spanCount = ((GridLayoutManager) materialScrollBar.recyclerView.getLayoutManager()).getSpanCount();
+            if (layoutManager instanceof GridLayoutManager) {
+                spanCount = ((GridLayoutManager) layoutManager).getSpanCount();
             }
 
             // Stop the scroller if it is scrolling
@@ -115,16 +119,15 @@ class ScrollingUtilities {
             //Scroll to the desired item. The offset used here is kind of hard to explain.
             //If the position we wish to scroll to is, say, position 10.5, we scroll to position 10,
             //and then offset by 0.5 * rowHeight. This is how we achieve smooth scrolling.
-            LinearLayoutManager layoutManager = ((LinearLayoutManager) materialScrollBar.recyclerView.getLayoutManager());
             layoutManager.scrollToPositionWithOffset(spanCount * exactItemPos / scrollPosState.rowHeight,
                     -(exactItemPos % scrollPosState.rowHeight));
         } else {
-            if(layoutManager == null){
-                layoutManager = ((LinearLayoutManager) materialScrollBar.recyclerView.getLayoutManager());
+            if (this.layoutManager == null) {
+                this.layoutManager = layoutManager;
             }
             int position = customScroller.getItemIndexForScroll(touchFraction);
             int offset = (int) (customScroller.getDepthForItem(position) - touchFraction * getAvailableScrollHeight());
-            layoutManager.scrollToPositionWithOffset(position, offset);
+            this.layoutManager.scrollToPositionWithOffset(position, offset);
         }
     }
 
@@ -150,6 +153,13 @@ class ScrollingUtilities {
             return;
         }
 
+        final RecyclerView.LayoutManager layoutManager = materialScrollBar.recyclerView.getLayoutManager();
+        if (layoutManager == null) {
+            Log.e("MaterialScrollBarLib", "The layout manager for your recyclerView has not been set; " +
+                    "skipping layout.");
+            return;
+        }
+
         int itemCount = materialScrollBar.recyclerView.getAdapter().getItemCount();
 
         // Return early if there are no items
@@ -159,14 +169,14 @@ class ScrollingUtilities {
         View child = materialScrollBar.recyclerView.getChildAt(0);
 
         scrollPosState.rowIndex = materialScrollBar.recyclerView.getChildAdapterPosition(child);
-        if (materialScrollBar.recyclerView.getLayoutManager() instanceof GridLayoutManager) {
-            scrollPosState.rowIndex = scrollPosState.rowIndex / ((GridLayoutManager) materialScrollBar.recyclerView.getLayoutManager()).getSpanCount();
+        if (layoutManager instanceof GridLayoutManager) {
+            scrollPosState.rowIndex = scrollPosState.rowIndex / ((GridLayoutManager) layoutManager).getSpanCount();
         }
         if(child == null){
             scrollPosState.rowTopOffset = 0;
             scrollPosState.rowHeight = 0;
         } else {
-            scrollPosState.rowTopOffset = materialScrollBar.recyclerView.getLayoutManager().getDecoratedTop(child);
+            scrollPosState.rowTopOffset = layoutManager.getDecoratedTop(child);
             scrollPosState.rowHeight = child.getHeight();
         }
     }
