@@ -34,6 +34,8 @@ public class TouchScrollBar extends MaterialScrollBar<TouchScrollBar>{
     private Handler uiHandler = new Handler(Looper.getMainLooper());
     private boolean respondToTouch = true;
 
+    private TypedArray a; //XML attributes
+
     private Runnable fadeBar = new Runnable() {
 
         @Override
@@ -44,10 +46,20 @@ public class TouchScrollBar extends MaterialScrollBar<TouchScrollBar>{
 
     public TouchScrollBar(Context context, AttributeSet attributeSet){
         super(context, attributeSet);
+
+        a = context.getTheme().obtainStyledAttributes(
+                attributeSet,
+                R.styleable.TouchScrollBar,
+                0, 0);
     }
 
     public TouchScrollBar(Context context, AttributeSet attributeSet, int defStyle){
         super(context, attributeSet, defStyle);
+
+        a = context.getTheme().obtainStyledAttributes(
+                attributeSet,
+                R.styleable.TouchScrollBar,
+                0, 0);
     }
 
     public TouchScrollBar(Context context, RecyclerView recyclerView, boolean lightOnTouch){
@@ -120,13 +132,19 @@ public class TouchScrollBar extends MaterialScrollBar<TouchScrollBar>{
     }
 
     @Override
-    void implementFlavourPreferences(TypedArray a) {
+    void implementFlavourPreferences(TypedArray parentAttributes) {
+        if (a == null)
+            return;
+
         if(a.hasValue(R.styleable.TouchScrollBar_msb_autoHide)){
             setAutoHide(a.getBoolean(R.styleable.TouchScrollBar_msb_autoHide, true));
         }
         if(a.hasValue(R.styleable.TouchScrollBar_msb_hideDelayInMilliseconds)){
             hideDuration = (a.getInteger(R.styleable.TouchScrollBar_msb_hideDelayInMilliseconds, 2500));
         }
+
+        a.recycle();
+        a = null;
     }
 
     @Override
