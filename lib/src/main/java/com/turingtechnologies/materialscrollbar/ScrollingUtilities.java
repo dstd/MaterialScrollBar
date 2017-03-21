@@ -78,9 +78,11 @@ class ScrollingUtilities {
     }
 
     private float getScrollPosition(){
-        getCurScrollState();
-        int scrollY = materialScrollBar.getPaddingTop() + constant - scrollPosState.rowTopOffset;
-        return ((float) scrollY / getAvailableScrollHeight()) * getAvailableScrollBarHeight();
+        RecyclerView recyclerView = materialScrollBar.recyclerView;
+        float range = recyclerView.computeVerticalScrollRange() - recyclerView.computeVerticalScrollExtent();
+        float offset = recyclerView.computeVerticalScrollOffset();
+        float progress = range > 0 ? offset / range : 0;
+        return progress * getAvailableScrollBarHeight();
     }
 
     private int getRowCount(){
